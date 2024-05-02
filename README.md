@@ -2,7 +2,9 @@
 
 ## Description
 
-This is a program inspired by CodeBullet on youtube. The `main.py` program uses the pygame library to create a driving game, complete with drifting mechanics. The `agent.py` program uses Deep Q Learning to iteratively improve a Neural Network model, making the AI better at the driving game. The logic of the Neural Network is found in `model.py`. The models are stored in the `/model` folder.
+This is a program inspired by Code Bullet on Youtube. This program trains a Neural Network to play a driving game.
+
+The `main.py` program uses the pygame library to implement the driving game, complete with drifting mechanics. The `agent.py` program uses Deep Q Learning to iteratively improve a Neural Network model, making the AI better at the driving game. The logic of the Neural Network is found in `model.py`, and the models are stored in the `/model` folder.
 
 ## Installation
 
@@ -19,11 +21,18 @@ pip -r install requirements.txt
 ```python
 python agent.py
 ```
-    to run the Deep Q Learning Algorithm on the amge
-If you wish to play the game yourself:
+to run the Deep Q Learning Algorithm on the game.
+
+**Or**
+
 ```python
 python main.py
 ```
+to play the driving game yourself
+
+## Additional Information
+
+In the `main.py` file, you can increase the value of `FPS` on line 28 to increase the speed the AI runs. Feel free to also change the hyperparameter values (found in lines 11-23) for the Deep Q Learning model.
 
 ## Questions or Feedback?
 
@@ -31,6 +40,6 @@ If you have any questions, encounter any issues, or have feedback to share, plea
 
 ## Thank You
 
-Thank you for visiting this project and for your interest in its development. Your support means a lot! If you find this project useful, consider giving it a ⭐️ or sharing it with others who might benefit from it.
+Thank you for visiting this project and for your interest in its development. Your support means a lot! If you find this project useful, consider giving it a ⭐️ or sharing it with others who might enjoy from it.
 
 Happy coding! 😊
