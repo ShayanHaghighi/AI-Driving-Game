@@ -11,7 +11,7 @@ The `main.py` program uses the pygame library to implement the driving game, com
 1. Clone the repository
 2. Install requirements using pip:
 ```
-pip -r install requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Running the project
