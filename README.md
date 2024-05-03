@@ -9,7 +9,8 @@ The `main.py` program uses the pygame library to implement the driving game, com
 ## Installation
 
 1. Clone the repository
-2. Install requirements using pip:
+2. [Install Python](https://www.python.org/downloads/)
+3. Install requirements using pip:
 ```
 pip install -r requirements.txt
 ```
@@ -32,7 +33,7 @@ to play the driving game yourself
 
 ## Additional Information
 
-In the `main.py` file, you can increase the value of `FPS` on line 28 to increase the speed the AI runs. Feel free to also change the hyperparameter values (found in lines 11-23) for the Deep Q Learning model.
+In the `main.py` file, you can increase the value of `FPS` on line 28 to increase the speed the AI plays the game. Feel free to also change the hyperparameter values (found in lines 11-23 in `agent.py`) of the Deep Q Learning model.
 
 ## Questions or Feedback?
 
