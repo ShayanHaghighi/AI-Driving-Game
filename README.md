@@ -43,4 +43,4 @@ If you have any questions, encounter any issues, or have feedback to share, plea
 
 Thank you for visiting this project and for your interest in its development. Your support means a lot! If you find this project useful, consider giving it a ⭐️ or sharing it with others who might enjoy from it.
 
-Happy coding! 😊
+Happy coding!
