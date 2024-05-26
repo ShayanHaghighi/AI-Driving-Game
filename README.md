@@ -2,7 +2,7 @@
 
 ## Description
 
-This is a program inspired by Code Bullet on Youtube. This program trains a Neural Network to play a driving game.
+This program trains a Neural Network to play a driving game.
 
 The `main.py` program uses the pygame library to implement the driving game, complete with drifting mechanics. The `agent.py` program uses Deep Q Learning to iteratively improve a Neural Network model, making the AI better at the driving game. The logic of the Neural Network is found in `model.py`, and the models are stored in the `/model` folder.
 
