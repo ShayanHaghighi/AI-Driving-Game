@@ -1,76 +1,136 @@
-import torch
+import torch as T
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
+import torch.optim as optim
+import numpy as np
 import os
 
-class Linear_QNet(nn.Module):
-    def __init__(self, input_size, hidden_size1, hidden_size2,hidden_size3, output_size):
-        super().__init__()
-        self.linear1 = nn.Linear(input_size, hidden_size1)
-        self.linear2 = nn.Linear(hidden_size1, hidden_size2)
-        self.linear3 = nn.Linear(hidden_size2, hidden_size3)
-        self.linear4 = nn.Linear(hidden_size3, output_size)
+class DeepQNetwork(nn.Module):
+    def __init__(self, lr, input_dims, fc1_dims, fc2_dims,
+                 n_actions):
+        super(DeepQNetwork, self).__init__()
+        self.input_dims = input_dims
+        self.fc1_dims = fc1_dims
+        self.fc2_dims = fc2_dims
+        self.n_actions = n_actions
+        self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims)
+        self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
+        self.fc3 = nn.Linear(self.fc2_dims, self.n_actions)
 
-    def forward(self, x):
-        x = F.relu(self.linear1(x))
-        x = F.relu(self.linear2(x))
-        x = F.relu(self.linear3(x))
-        x = self.linear4(x)
-        return x
+        self.optimizer = optim.Adam(self.parameters(), lr=lr)
+        self.loss = nn.MSELoss()
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        self.to(self.device)
 
-    def save(self, file_name='mymodel.pth'):
+    def forward(self, state):
+        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc2(x))
+        actions = self.fc3(x)
+
+        return actions
+    
+    def save(self, file_name='model.pth'):
         model_folder_path = './model'
         if not os.path.exists(model_folder_path):
             os.makedirs(model_folder_path)
 
         file_name = os.path.join(model_folder_path, file_name)
-        torch.save(self.state_dict(), file_name)
+        T.save(self.state_dict(), file_name)
 
 
-class QTrainer:
-    def __init__(self, model, lr, gamma):
-        self.lr = lr
+
+class Agent:
+    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions,
+                 max_mem_size=100000, eps_end=0.05, eps_dec=0.0025):
         self.gamma = gamma
-        self.model = model
-        self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
-        self.criterion = nn.MSELoss()
+        self.epsilon = epsilon
+        self.eps_min = eps_end
+        self.eps_dec = eps_dec
+        self.lr = lr
+        self.action_space = [i for i in range(n_actions)]
+        self.mem_size = max_mem_size
+        self.batch_size = batch_size
+        self.mem_cntr = 0
+        self.iter_cntr = 0
+        self.replace_target = 100
 
-    def train_step(self, state, action, reward, next_state, done):
-        state = torch.tensor(state, dtype=torch.float)
-        next_state = torch.tensor(next_state, dtype=torch.float)
-        action = torch.tensor(action, dtype=torch.long)
-        reward = torch.tensor(reward, dtype=torch.float)
-        # (n, x)
+        self.primary_nn = DeepQNetwork(lr, n_actions=n_actions,
+                                   input_dims=input_dims,
+                                   fc1_dims=256, fc2_dims=256)
+        self.target_nn = DeepQNetwork(lr, n_actions=n_actions,
+                                   input_dims=input_dims,
+                                   fc1_dims=256, fc2_dims=256)
+        self.state_memory = np.zeros((self.mem_size, *input_dims),
+                                     dtype=np.float32)
+        self.new_state_memory = np.zeros((self.mem_size, *input_dims),
+                                         dtype=np.float32)
+        self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
+        self.reward_memory = np.zeros(self.mem_size, dtype=np.float32)
+        self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool_)
 
-        if len(state.shape) == 1:
-            # (1, x)
-            state = torch.unsqueeze(state, 0)
-            next_state = torch.unsqueeze(next_state, 0)
-            action = torch.unsqueeze(action, 0)
-            reward = torch.unsqueeze(reward, 0)
-            done = (done, )
+    def save(self):
+        self.primary_nn.save()
 
-        # 1: predicted Q values with current state
-        pred = self.model(state)
+    def load(self):
+        if os.path.exists(os.path.join('./model','model.pth')):
+            self.primary_nn.load_state_dict(T.load(os.path.join('./model','good_circle.pth')))
+            self.target_nn.load_state_dict(T.load(os.path.join('./model','good_circle.pth')))
 
-        target = pred.clone()
-        for idx in range(len(done)):
-            Q_new = reward[idx]
-            if not done[idx]:
-                Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
+    def store_transition(self, state, action, reward, state_, terminal):
+        index = self.mem_cntr % self.mem_size
+        self.state_memory[index] = state
+        self.new_state_memory[index] = state_
+        self.reward_memory[index] = reward
+        self.action_memory[index] = action
+        self.terminal_memory[index] = terminal
 
-       
-            target[idx][torch.argmax(action[idx]).item()] = Q_new
+        self.mem_cntr += 1
+
+    def choose_action(self, observation):
+        if np.random.random() > self.epsilon:
+            state = T.tensor([observation]).to(self.primary_nn.device)
+            # print(state)
+            actions = self.primary_nn.forward(state)
+            action = T.argmax(actions).item()
+        else:
+            action = np.random.choice(self.action_space)
+
+        return action
     
-        # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
-        # pred.clone()
-        # preds[argmax(action)] = Q_new
-        self.optimizer.zero_grad()
-        loss = self.criterion(target, pred)
+    def update_target_net(self):
+        self.target_nn.load_state_dict(self.primary_nn.state_dict())
+
+    def learn(self):
+        
+        if self.mem_cntr < self.batch_size:
+            return
+
+        self.primary_nn.optimizer.zero_grad()
+
+        max_mem = min(self.mem_cntr, self.mem_size)
+
+        batch = np.random.choice(max_mem, self.batch_size, replace=False)
+        batch_index = np.arange(self.batch_size, dtype=np.int32)
+
+        state_batch = T.tensor(self.state_memory[batch]).to(self.primary_nn.device)
+        new_state_batch = T.tensor(
+                self.new_state_memory[batch]).to(self.primary_nn.device)
+        action_batch = self.action_memory[batch]
+        reward_batch = T.tensor(
+                self.reward_memory[batch]).to(self.primary_nn.device)
+        terminal_batch = T.tensor(
+                self.terminal_memory[batch]).to(self.primary_nn.device)
+
+
+        q_eval = self.primary_nn.forward(state_batch)[batch_index, action_batch]
+        q_next = self.target_nn.forward(new_state_batch)
+        q_next[terminal_batch] = 0.0
+
+        q_target = reward_batch + self.gamma*T.max(q_next, dim=1)[0]
+
+        loss = self.primary_nn.loss(q_target, q_eval).to(self.primary_nn.device)
         loss.backward()
-
-        self.optimizer.step()
-
+        self.primary_nn.optimizer.step()
 
 
+        self.iter_cntr += 1
