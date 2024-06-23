@@ -33,7 +33,7 @@ to play the driving game yourself
 
 ## Additional Information
 
-Feel free to change the hyperparameter values (found in lines 11 in `main.py`) of the Deep Q Learning model.
+Feel free to change the hyperparameter values (found in lines 11 in `main.py`) of the Deep Q Learning model, and in the Agent class on line 43 of `model.py`
 
 ## Questions or Feedback?
 

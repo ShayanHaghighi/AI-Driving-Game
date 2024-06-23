@@ -1,9 +1,9 @@
-from game import GameAI 
+from game.game import GameAI 
 from model import Agent
 from helper import plot
 import numpy as np
 import collections
-from maps import Map_1
+from game.maps import Map_1
 
 
 if __name__ == '__main__':
