@@ -20,20 +20,20 @@ pip install -r requirements.txt
 1. Navigate to the root of the project
 2. Run
 ```python
-python agent.py
+python main.py
 ```
 to run the Deep Q Learning Algorithm on the game.
 
 **Or**
 
 ```python
-python main.py
+python game.py
 ```
 to play the driving game yourself
 
 ## Additional Information
 
-In the `main.py` file, you can increase the value of `FPS` on line 28 to increase the speed the AI plays the game. Feel free to also change the hyperparameter values (found in lines 11-23 in `agent.py`) of the Deep Q Learning model.
+Feel free to change the hyperparameter values (found in lines 11 in `main.py`) of the Deep Q Learning model.
 
 ## Questions or Feedback?
 
