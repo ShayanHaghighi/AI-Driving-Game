@@ -12,23 +12,23 @@ LEFT,RIGHT,FORWARD,BOOST,BACKWARD = 0,1,2,3,4
 class AbstractCar:
     def __init__(self, max_velocity=5, rotation_vel=7,drift=0.9,acceleration=0.1,initial_angle=math.pi/2,start_pos=(700, 704)):
 
-        
+        # ------------ CAR PARAMETERS -----------------------
         self.initial_angle = initial_angle
         self.drift = drift
         self.acceleration = acceleration
         self.x, self.y = start_pos
         self.rotation_vel = rotation_vel*math.pi/180
         self.max_velocity = max_velocity
-        
+        # ---------------------------------------------------
 
-        
+        # the image of the car
         self.img = self.IMG
         self.boosting_img = self.BOOSTING_IMG
 
         self.current_speed = 0
-        
+        # represents the angle the car is headed
         self.angle_headed = 0
-        
+        # represents the angle the car is facing
         self.angle_facing = initial_angle
 
 
@@ -90,21 +90,21 @@ class AbstractCar:
 
             if not accelerating:
 
-                
+                # decrease the speed,
                 self.current_speed *= 0.95
                 current_acceleration = 0
 
             elif reversing:
-                
+                # if reversing, set the angle (of the force of the engine) to go backwards from the car
                 current_angle = (self.angle_facing - math.pi)
 
-        
+        # a vector representing the magnitude and direction of where the car is headed
         momentum_vector = (self.angle_headed,self.current_speed)
 
-        
+        # a vector representing the magnitude and direction of where the engine is pushing
         engine_force_vector = (current_angle,current_acceleration)
 
-        
+        # new vector for (direction,speed) of car after forces are taken into account
         self.angle_headed,self.current_speed = self.add_vectors(momentum_vector,engine_force_vector)
 
         vertical = math.cos((self.angle_headed)) * self.current_speed
@@ -152,7 +152,7 @@ class GameAI:
 
         self.passing_finish_line = False
 
-        
+        # a list start/end coords of checkpoints
         self.checkpoints = [
                             ((663, 650),(666, 783)),
                             ((600, 780),(605, 647)),
@@ -199,7 +199,7 @@ class GameAI:
                             ]
         self.unpassed_checkpoints = [True] * len(self.checkpoints)
         
-        
+        # a list of distances in 8 directions around the car to the nearest wall
         self.line_angles = [0,math.pi/4,math.pi/2,3*math.pi/4,math.pi,5*math.pi/4,3*math.pi/2,7*math.pi/4]
         self.distances = [0] * len(self.line_angles)
         self.detect_lines()
@@ -216,7 +216,7 @@ class GameAI:
 
         pygame.display.update()
 
-    
+    # returns the point a line intersects with an image (if exists) 
     def check_line_intersection(self,image, start, end, offset=(0,0)):
             x1, y1 = start
             x2, y2 = end
@@ -228,9 +228,9 @@ class GameAI:
             err = dx - dy
 
             while x1 != x2 or y1 != y2:
-                
+                # Check if the current pixel is within the image boundaries
                 if 0 <= x1-offset[0] < image.get_width() and 0 <= y1-offset[1] < image.get_height():
-                    pixel_alpha = image.get_at((int(x1-offset[0]), int(y1-offset[1])))[3]   
+                    pixel_alpha = image.get_at((int(x1-offset[0]), int(y1-offset[1])))[3]   # Alpha value (transparency)
                     if pixel_alpha > 0:
                         return (x1,y1)
 
@@ -242,11 +242,11 @@ class GameAI:
                     err += dx
                     y1 += sy
 
-            
+            #return intersection_points
 
 
 
-    
+    # checks if a checkpoint has been passed in most recent frame
     def passed_checkpoints(self):
         for i,checkpoint in enumerate(self.checkpoints):
             if (self.check_line_intersection(self.AI_car.img,checkpoint[0],checkpoint[1],(self.AI_car.x,self.AI_car.y))) != None:
@@ -256,13 +256,13 @@ class GameAI:
 
 
 
-    
+    # draws the 8 lines and calculates distance to nearest wall in each direction
     def detect_lines(self):
         max_line_length = 400
 
         for i,angle in enumerate(self.line_angles):
 
-            
+            # calculate start 
             car_width = self.AI_car.img.get_rect().width/2
             car_height = self.AI_car.img.get_rect().height/2
 
@@ -274,10 +274,10 @@ class GameAI:
             line_end = (int(max_line_length * math.cos(angle_of_line)  +  car_center[0]),
                         int(max_line_length * math.sin(angle_of_line)  +  car_center[1]))
             
-            
+            # find poi between line and edge of track
             point = self.check_line_intersection(self.map.TRACK_BORDER,line_start,line_end)
             
-            
+            # check if line intersects with edge, and draw line
             if point != None:
                 self.distances[i] = int(math.hypot(line_start[0]-point[0],line_start[1]-point[1]))
                 pygame.draw.line(self.WIN,(0,0,255),line_start,point,4)
@@ -287,16 +287,16 @@ class GameAI:
 
 
     def draw(self,win, images, player_car):
-        
+        # draw all static images
         for img, pos in images:
             win.blit(img, pos)
 
-        
+        # draw all the green checkpoints
         for i,checkpoint in enumerate(self.checkpoints):
             if self.unpassed_checkpoints[i]:
                 pygame.draw.line(win,(0,255,0),checkpoint[0],checkpoint[1],2)
 
-        
+        # update blue 'radar' lines
         self.detect_lines()
 
         player_car.draw(win)
@@ -338,7 +338,7 @@ class GameAI:
             if actions[FORWARD]:
                 AI_car.move_forward()
             else:
-                
+                # TODO: ease out of screen shake
                 pass
 
         if actions [BACKWARD]:
@@ -358,7 +358,7 @@ class GameAI:
 
 
 
-    
+    # represent the state of the board fed to the agent (as noramlised values)
     def get_state(self):
         
         return list(map(lambda x : 40/x if x != 0 else 60,self.distances)) \
@@ -373,23 +373,23 @@ class GameAI:
         reward = -0.1
         done = False
 
-        
+        # reward car for going through checkpoints
         passed_checkpoint = self.passed_checkpoints()
         if passed_checkpoint:
             self.score += 1
             reward = 50
         
-        
+        # punish car for being too close to edge
         min_distance = 30
         if any(distance < min_distance for distance in self.distances):
             reward -= 10
 
-        
+        # punish car if it has been idle for too long
         if self.num_frames > self.score*50 + 500:
             reward = -200
             done = True
             
-        
+        # punish car for colliding with side of track
         if self.AI_car.collide(self.map.TRACK_BORDER_MASK) != None:
             reward = -100
             done = True
@@ -398,22 +398,22 @@ class GameAI:
 
 
 
-    
+    # represents what happens in a single frame
     def play_step(self,action):
         
         self.move_player(self.AI_car,action)
         reward,done = self.calculate_reward()
 
-        
+        # check overlap between car and finish line
         finish_poi_collide = self.AI_car.collide(self.map.FINISH_MASK, * self.map.FINISH_POSITION)
         if finish_poi_collide != None:
             if  not self.passing_finish_line:
 
-                
+                # check if passing finish line from incorrect side
                 if finish_poi_collide[0] == 0:
                     self.AI_car.bounce()
 
-                
+                # else car has correctly passed finish line
                 else:
                     self.passing_finish_line = True
                     self.unpassed_checkpoints = [True] * len(self.checkpoints)
@@ -448,5 +448,5 @@ if __name__ == '__main__':
                 break
 
         reward, done, score = game.play_step(action)
-        
-        
+        # if done:
+        #     game.reset()
