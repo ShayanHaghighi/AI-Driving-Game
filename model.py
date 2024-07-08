@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 class DeepQNetwork(nn.Module):
-    
+
     def __init__(self, lr, input_dims, hidden_layer_1_dims, hidden_layer_2_dims,
                  n_actions):
         super(DeepQNetwork, self).__init__()
@@ -48,7 +48,7 @@ class DeepQNetwork(nn.Module):
 
 class Agent:
     def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions,
-                 max_mem_size=100000, eps_end=0.05, eps_dec=0.0025):
+                 max_mem_size=1_000_000, eps_end=0.05, eps_dec=0.0025):
         self.gamma = gamma
         self.epsilon = epsilon
         self.eps_min = eps_end
@@ -113,9 +113,17 @@ class Agent:
     def update_target_net(self):
         self.target_nn.load_state_dict(self.primary_nn.state_dict())
 
+    def learn_big_batch(self,batch_size):
+        if self.mem_cntr < batch_size:
+            return
 
+        self.primary_nn.optimizer.zero_grad()
 
-    def create_batches(self,batch):
+        max_mem = min(self.mem_cntr, self.mem_size)
+
+        batch = np.random.choice(max_mem, batch_size, replace=False)
+        batch_index = np.arange(batch_size, dtype=np.int32)
+        
         state_batch = T.tensor(self.state_memory[batch]).to(self.primary_nn.device)
         new_state_batch = T.tensor( self.new_state_memory[batch]).to(self.primary_nn.device)
         action_batch = self.action_memory[batch]
@@ -123,9 +131,19 @@ class Agent:
                 self.reward_memory[batch]).to(self.primary_nn.device)
         terminal_batch = T.tensor(
                 self.terminal_memory[batch]).to(self.primary_nn.device)
-        
-        return state_batch, new_state_batch, action_batch, reward_batch, terminal_batch
 
+        q_eval = self.primary_nn.forward(state_batch)[batch_index, action_batch]
+        q_next = self.target_nn.forward(new_state_batch)
+        q_next[terminal_batch] = 0.0
+
+        q_target = reward_batch + self.gamma*T.max(q_next, dim=1)[0]
+
+        loss = self.primary_nn.loss(q_target, q_eval).to(self.primary_nn.device)
+        loss.backward()
+        self.primary_nn.optimizer.step()
+
+
+        self.iter_cntr += 1
 
 
     def learn(self):
@@ -140,8 +158,13 @@ class Agent:
         batch = np.random.choice(max_mem, self.batch_size, replace=False)
         batch_index = np.arange(self.batch_size, dtype=np.int32)
         
-        state_batch, new_state_batch, action_batch, reward_batch, terminal_batch = self.create_batches(batch=batch)
-
+        state_batch = T.tensor(self.state_memory[batch]).to(self.primary_nn.device)
+        new_state_batch = T.tensor( self.new_state_memory[batch]).to(self.primary_nn.device)
+        action_batch = self.action_memory[batch]
+        reward_batch = T.tensor(
+                self.reward_memory[batch]).to(self.primary_nn.device)
+        terminal_batch = T.tensor(
+                self.terminal_memory[batch]).to(self.primary_nn.device)
 
         q_eval = self.primary_nn.forward(state_batch)[batch_index, action_batch]
         q_next = self.target_nn.forward(new_state_batch)
