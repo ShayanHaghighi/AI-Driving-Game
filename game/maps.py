@@ -1,5 +1,8 @@
 from pathlib import Path
-from helper import scale_image
+if __name__=='maps':
+    from helper import scale_image
+else:
+    from game.helper import scale_image
 import pygame
 
 
@@ -29,7 +32,7 @@ class Map():
         self.IMAGES = [(self.TRACK, (0, 0)), (self.FINISH, (self.FINISH_POSITION[0], self.FINISH_POSITION[1]))]
 
 
-Map_1 = Map(media_path="./media",
+Map_1 = Map(media_path="../media",
             track_img="track.png",track_mask_img="track_mask.png",
             finish_img="finish.png",finish_position=(720, 650),
             car_img="car_icon.png",car_boost_img="car_icon_flame.png")

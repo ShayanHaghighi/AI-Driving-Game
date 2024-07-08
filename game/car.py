@@ -1,6 +1,9 @@
 
 import math
-from helper import blit_rotate_center
+if __name__=='car':
+    from helper import blit_rotate_center
+else:
+    from game.helper import blit_rotate_center
 import pygame
 
 class AbstractCar:

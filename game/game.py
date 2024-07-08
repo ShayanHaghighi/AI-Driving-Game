@@ -2,15 +2,19 @@ import pygame
 import random
 import math
 import time
-from maps import Map_1
-from helper import blit_rotate_center
-from car import AbstractCar
+if __name__=='__main__':
+    from maps import Map_1
+    from car import AbstractCar
+else:
+    from game.maps import Map_1
+    from game.car import AbstractCar
+
  
 LEFT,RIGHT,FORWARD,BOOST,BACKWARD = 0,1,2,3,4
 
 
 class PlayerCar(AbstractCar):
-    
+
     IMG = Map_1.CAR
     BOOSTING_IMG = Map_1.BOOST_CAR
     START_POS = (700, 704)
@@ -133,7 +137,6 @@ class GameAI:
                     return True
 
 
-
     # draws the 8 lines and calculates distance to nearest wall in each direction
     def detect_lines(self):
         max_line_length = 400
@@ -160,6 +163,7 @@ class GameAI:
                 self.distances[i] = int(math.hypot(line_start[0]-point[0],line_start[1]-point[1]))
                 pygame.draw.line(self.WIN,(0,0,255),line_start,point,4)
             else:
+                self.distances[i] = max_line_length
                 pygame.draw.line(self.WIN,(0,0,255),line_start,line_end,4)
 
 
@@ -241,35 +245,43 @@ class GameAI:
         
         return list(map(lambda x : 40/x if x != 0 else 60,self.distances)) \
                  + ([(self.AI_car.x/self.map.WIDTH),(self.AI_car.y/self.map.HEIGHT),
-                     (self.AI_car.angle_facing / (2*math.pi)), 
-                     (self.AI_car.angle_headed / (2*math.pi)),
-                     (self.AI_car.current_speed / 10)])
+                     ((self.AI_car.angle_facing % math.pi*2) / (2*math.pi)), 
+                     ((self.AI_car.angle_headed % math.pi*2) / (2*math.pi)),
+                     (self.AI_car.current_speed / 5)])
    
 
 
     def calculate_reward(self):
-        reward = -0.1
+        reward = -0.01
         done = False
 
         # reward car for going through checkpoints
         passed_checkpoint = self.passed_checkpoints()
         if passed_checkpoint:
             self.score += 1
-            reward = 50
+            reward = 20
+
+        reward += self.AI_car.current_speed
         
         # punish car for being too close to edge
-        min_distance = 30
-        if any(distance < min_distance for distance in self.distances):
-            reward -= 10
+        # min_distance = 30
+        # if any(distance < min_distance for distance in self.distances):
+        #     reward -= 10
+        # min_inverse_distance = 10
+        # for distance in self.distances:
+        #     if distance != 0 and (-160/distance)+4 < min_inverse_distance:
+        #         min_inverse_distance = (-160/distance)+4
+
+        # reward += min_inverse_distance
 
         # punish car if it has been idle for too long
         if self.num_frames > self.score*50 + 500:
-            reward = -200
+            reward = -50
             done = True
             
         # punish car for colliding with side of track
         if self.AI_car.collide(self.map.TRACK_BORDER_MASK) != None:
-            reward = -100
+            reward = -30
             done = True
 
         return reward,done
@@ -307,13 +319,13 @@ class GameAI:
 
 
 if __name__ == '__main__':
-
+    ctr = 0
     game = GameAI(FPS=60,map=Map_1)
     commands = [pygame.K_LEFT,pygame.K_RIGHT,pygame.K_UP,pygame.K_SPACE,pygame.K_DOWN,0]
     run = True
 
     while run:
-
+        ctr+=1
         keys = pygame.key.get_pressed()
         action = [0,0,0,0,0,0]
         for i in range(len(action)):
@@ -326,5 +338,7 @@ if __name__ == '__main__':
                 break
 
         reward, done, score = game.play_step(action)
-        # if done:
-        #     game.reset()
+        # if ctr % 60==1:
+        #     print(reward)
+        if done:
+            game.reset()
